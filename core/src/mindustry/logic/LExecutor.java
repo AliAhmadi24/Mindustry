@@ -88,6 +88,7 @@ public class LExecutor{
         }
 
         if(counter.numval < instructions.length){
+            counter.isobj = false;
             instructions[(int)(counter.numval++)].run(this);
         }
     }
@@ -781,10 +782,8 @@ public class LExecutor{
         public void run(LExecutor exec){
             if(!to.constant){
                 if(from.isobj){
-                    if(to != exec.counter){
-                        to.objval = from.objval;
-                        to.isobj = true;
-                    }
+                    to.objval = from.objval;
+                    to.isobj = true;
                 }else{
                     to.numval = LVar.invalid(from.numval) ? 0 : from.numval;
                     to.isobj = false;
@@ -969,11 +968,7 @@ public class LExecutor{
             if(Vars.headless) return;
 
             if(target.building() instanceof LogicDisplayBuild d && (d.team == exec.team || exec.privileged)){
-                if(d.commands.size + exec.graphicsBuffer.size < maxDisplayBuffer){
-                    for(int i = 0; i < exec.graphicsBuffer.size; i++){
-                        d.commands.addLast(exec.graphicsBuffer.items[i]);
-                    }
-                }
+                d.flushCommands(exec.graphicsBuffer);
                 exec.graphicsBuffer.clear();
             }
         }
@@ -1221,12 +1216,34 @@ public class LExecutor{
             this.a = a;
         }
 
-        public PackColorI(){
-        }
+        public PackColorI(){}
 
         @Override
         public void run(LExecutor exec){
             result.setnum(Color.toDoubleBits(Mathf.clamp(r.numf()), Mathf.clamp(g.numf()), Mathf.clamp(b.numf()), Mathf.clamp(a.numf())));
+        }
+    }
+
+    public static class UnpackColorI implements LInstruction{
+        public LVar r, g, b, a, value;
+
+        public UnpackColorI(LVar r, LVar g, LVar b, LVar a, LVar value){
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.a = a;
+            this.value = value;
+        }
+
+        public UnpackColorI(){}
+
+        @Override
+        public void run(LExecutor exec){
+            var color = Tmp.c1.fromDouble(value.num());
+            r.setnum(color.r);
+            g.setnum(color.g);
+            b.setnum(color.b);
+            a.setnum(color.a);
         }
     }
 
@@ -1437,9 +1454,9 @@ public class LExecutor{
 
             Team t = team.team();
 
-            if(type.obj() instanceof UnitType type && !type.internal && Units.canCreate(t, type)){
+            if(t != null && type.obj() instanceof UnitType type && !type.internal && Units.canCreate(t, type)){
                 //random offset to prevent stacking
-                var unit = type.spawn(t, World.unconv(x.numf()) + Mathf.range(0.01f), World.unconv(y.numf()) + Mathf.range(0.01f));
+                var unit = type.spawn(t, World.unconv(x.numf()) + Mathf.range(0.01f), World.unconv(y.numf()) + Mathf.range(0.01f), rotation.numf());
                 spawner.spawnEffect(unit);
                 result.setobj(unit);
             }

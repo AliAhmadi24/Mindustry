@@ -51,7 +51,7 @@ public class NetServer implements ApplicationListener{
         if(state.rules.pvp){
             //find team with minimum amount of players and auto-assign player to that.
             TeamData re = state.teams.getActive().min(data -> {
-                if((state.rules.waveTeam == data.team && state.rules.waves) || !data.team.active() || data.team == Team.derelict) return Integer.MAX_VALUE;
+                if((state.rules.waveTeam == data.team && state.rules.waves) || !data.hasCore() || data.team == Team.derelict) return Integer.MAX_VALUE;
 
                 int count = 0;
                 for(Player other : players){
@@ -508,7 +508,7 @@ public class NetServer implements ApplicationListener{
         data.stream = new ByteArrayInputStream(stream.toByteArray());
         player.con.sendStream(data);
 
-        debug("Packed @ bytes of world data.", stream.size());
+        debug("Packed @ bytes of world data to @ (@ / @)", stream.size(), player.name, player.con.address, player.uuid());
     }
 
     public void addPacketHandler(String type, Cons2<Player, String> handler){
@@ -601,7 +601,7 @@ public class NetServer implements ApplicationListener{
 
     @Remote(targets = Loc.client)
     public static void serverBinaryPacketReliable(Player player, String type, byte[] contents){
-        if(netServer.customPacketHandlers.containsKey(type)){
+        if(netServer.customBinaryPacketHandlers.containsKey(type)){
             for(var c : netServer.customBinaryPacketHandlers.get(type)){
                 c.get(player, contents);
             }
